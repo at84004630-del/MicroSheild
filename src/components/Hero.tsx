@@ -193,7 +193,10 @@ function AnimatedPolicyCard() {
             { label: "Premium Paid", value: "2 USDC" },
             { label: "Max Payout",   value: "10 USDC" },
             { label: "Delay Threshold", value: "3 hours" },
-            { label: "Policy Expires",  value: "Aug 25, 2026" },
+            { label: "Policy Expires",  value: (() => {
+              const d = new Date(Date.now() + 48 * 60 * 60 * 1000);
+              return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+            })() },
           ].map(({ label, value }) => (
             <div key={label} className="space-y-1">
               <p className="text-gray-500 text-xs">{label}</p>

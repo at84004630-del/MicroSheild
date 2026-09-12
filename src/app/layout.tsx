@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientProviders from "@/components/ClientProviders";
 
 export const metadata: Metadata = {
   title: "MicroShield — Instant Flight Insurance on Solana",
@@ -20,7 +21,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {/*
+          ClientProviders is a "use client" component that dynamically loads
+          the Solana wallet adapter (ssr:false) without breaking the Server Component layout.
+        */}
+        <ClientProviders>
+          {children}
+        </ClientProviders>
+      </body>
     </html>
   );
 }

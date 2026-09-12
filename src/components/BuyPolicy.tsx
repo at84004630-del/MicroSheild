@@ -1,6 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Plane, Wallet, Shield, ArrowRight, Info, CheckCircle, Loader2, X, ExternalLink } from "lucide-react";
+import { Plane, Wallet, Shield, ArrowRight, Info, CheckCircle, Loader2, X, ExternalLink, AlertCircle, Droplets } from "lucide-react";
+import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { buyPolicyAction } from "@/lib/actions";
+import { TIERS } from "@/lib/idl";
 
 const COVERAGES = [
   { premium: 1, payout: 5,  label: "Basic",    desc: "Short-haul domestic" },
@@ -9,27 +13,37 @@ const COVERAGES = [
 ];
 
 const THRESHOLDS = [
-  { hours: 2, label: "2+ hours delay" },
-  { hours: 3, label: "3+ hours delay" },
-  { hours: 5, label: "5+ hours delay" },
+  { hours: 1, mins: 60,  label: "1+ hour delay" },
+  { hours: 2, mins: 120, label: "2+ hours delay" },
+  { hours: 3, mins: 180, label: "3+ hours delay" },
+  { hours: 5, mins: 300, label: "5+ hours delay" },
 ];
 
 type Step = "form" | "confirm" | "success";
 
 export default function BuyPolicy() {
   const sectionRef = useRef<HTMLElement>(null);
+
+  // Form state
   const [flight, setFlight]       = useState("");
   const [coverage, setCoverage]   = useState(1);
   const [threshold, setThreshold] = useState(3);
   const [step, setStep]           = useState<Step>("form");
   const [loading, setLoading]     = useState(false);
-  const [txHash]                  = useState("5x7kLmP...a9pQ");
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
-  const [walletAddress, setWalletAddress]     = useState("");
-  const [confetti, setConfetti]               = useState(false);
+  const [txHash, setTxHash]       = useState("");
+  const [error, setError]         = useState("");
+  const [confetti, setConfetti]   = useState(false);
+
+  // Real wallet hooks
+  const { connected, publicKey } = useWallet();
+  const anchorWallet = useAnchorWallet();
+  const { setVisible } = useWalletModal();
 
   const selected = COVERAGES[coverage];
+  const thresholdMins = THRESHOLDS.find(t => t.hours === threshold)?.mins ?? 180;
+  const walletAddress = publicKey
+    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+    : "";
 
   // Scroll reveal
   useEffect(() => {
@@ -44,28 +58,44 @@ export default function BuyPolicy() {
   }, []);
 
   function handleBuy() {
-    if (!walletConnected) { setShowWalletModal(true); return; }
+    if (!connected) { setVisible(true); return; }
     if (!flight.trim()) return;
+    setError("");
     setStep("confirm");
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    if (!anchorWallet) { setVisible(true); return; }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError("");
+
+    try {
+      const sig = await buyPolicyAction({
+        wallet: anchorWallet,
+        flightNumber: flight.trim(),
+        premiumTier: coverage as 0 | 1 | 2,
+        delayThresholdMins: thresholdMins as 60 | 120 | 180 | 300,
+      });
+      setTxHash(sig);
       setStep("success");
       setConfetti(true);
-      setTimeout(() => setConfetti(false), 2000);
-    }, 2200);
-  }
-
-  function handleConnectWallet() {
-    // Simulate wallet connection
-    setTimeout(() => {
-      setWalletConnected(true);
-      setWalletAddress("7xKp...3mRq");
-      setShowWalletModal(false);
-    }, 1200);
+      setTimeout(() => setConfetti(false), 2500);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // Surface a user-friendly message
+      if (msg.includes("not yet initialized")) {
+        setError("Program not deployed on devnet yet. This is a demo — real deployment coming soon!");
+      } else if (msg.includes("insufficient funds") || msg.includes("0x1")) {
+        setError("Insufficient USDC balance. Get devnet USDC from a faucet first.");
+      } else if (msg.includes("User rejected")) {
+        setError("Transaction rejected in wallet.");
+      } else {
+        setError(msg.slice(0, 200));
+      }
+      setStep("form");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -73,6 +103,38 @@ export default function BuyPolicy() {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/5 to-transparent pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative">
+
+        {/* ── Devnet USDC faucet banner ── always visible for new testers ── */}
+        <div className="reveal mb-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-5 py-4 rounded-2xl border border-amber-400/25 bg-amber-400/5">
+          <div className="flex items-center gap-3">
+            <Droplets className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-amber-300 font-semibold text-sm">Testing on Devnet?</p>
+              <p className="text-gray-400 text-xs mt-0.5">
+                You need devnet SOL + devnet USDC before buying a policy.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 flex-shrink-0">
+            <a
+              href="https://faucet.solana.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-colors"
+            >
+              Get Devnet SOL <ExternalLink className="w-3 h-3" />
+            </a>
+            <a
+              href="https://spl-token-faucet.com/?token-name=USDC-Dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-colors"
+            >
+              Get Devnet USDC <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-16 items-start">
 
           {/* Left — explainer */}
@@ -115,21 +177,48 @@ export default function BuyPolicy() {
             {/* Confetti */}
             {confetti && <ConfettiEffect />}
 
+            {/* Error banner */}
+            {error && (
+              <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 flex items-start gap-2 animate-fade-in-up">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Faucet banner — shown when insufficient funds error */}
+            {error && (error.includes("USDC") || error.includes("0x1") || error.includes("insufficient")) && (
+              <div className="mb-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/8 flex items-center justify-between gap-3 animate-fade-in-up">
+                <div className="flex items-center gap-2">
+                  <Droplets className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <p className="text-amber-400 text-xs font-medium">Need devnet USDC?</p>
+                </div>
+                <a
+                  href="https://spl-token-faucet.com/?token-name=USDC"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-amber-300 hover:text-amber-200 font-semibold whitespace-nowrap transition-colors"
+                >
+                  Get Test USDC <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+
             {step === "form" && (
               <FormStep
                 flight={flight} setFlight={setFlight}
                 coverage={coverage} setCoverage={setCoverage}
                 threshold={threshold} setThreshold={setThreshold}
                 selected={selected}
-                walletConnected={walletConnected}
+                connected={connected}
                 walletAddress={walletAddress}
                 onBuy={handleBuy}
-                onConnectWallet={() => setShowWalletModal(true)}
+                onConnectWallet={() => setVisible(true)}
               />
             )}
             {step === "confirm" && (
               <ConfirmStep
-                flight={flight} selected={selected} threshold={threshold}
+                flight={flight} selected={selected}
+                threshold={threshold} thresholdMins={thresholdMins}
                 loading={loading}
                 onConfirm={handleConfirm}
                 onBack={() => setStep("form")}
@@ -138,34 +227,39 @@ export default function BuyPolicy() {
             {step === "success" && (
               <SuccessStep
                 flight={flight} selected={selected} txHash={txHash}
-                onReset={() => { setStep("form"); setFlight(""); }}
+                onReset={() => { setStep("form"); setFlight(""); setTxHash(""); }}
               />
             )}
           </div>
         </div>
       </div>
-
-      {/* Wallet Connect Modal */}
-      {showWalletModal && (
-        <WalletModal
-          onConnect={handleConnectWallet}
-          onClose={() => setShowWalletModal(false)}
-        />
-      )}
     </section>
   );
 }
 
 /* ── Sub-components ─────────────────────────────────────── */
 
-function FormStep({ flight, setFlight, coverage, setCoverage, threshold, setThreshold, selected, walletConnected, walletAddress, onBuy, onConnectWallet }: any) {
+function FormStep({
+  flight, setFlight,
+  coverage, setCoverage,
+  threshold, setThreshold,
+  selected, connected, walletAddress,
+  onBuy, onConnectWallet,
+}: {
+  flight: string; setFlight: (v: string) => void;
+  coverage: number; setCoverage: (v: number) => void;
+  threshold: number; setThreshold: (v: number) => void;
+  selected: typeof COVERAGES[0];
+  connected: boolean; walletAddress: string;
+  onBuy: () => void; onConnectWallet: () => void;
+}) {
   return (
     <div className="space-y-5">
       {/* Wallet status */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-white font-bold text-xl">New Policy</h3>
-          {walletConnected ? (
+          {connected ? (
             <p className="text-gray-500 text-sm mt-0.5">
               Wallet: <span className="text-emerald-400 font-mono">{walletAddress}</span>
               <span className="ml-2 inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-green align-middle" />
@@ -179,7 +273,7 @@ function FormStep({ flight, setFlight, coverage, setCoverage, threshold, setThre
             </p>
           )}
         </div>
-        {walletConnected && (
+        {connected && (
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-green" />
             <span className="text-emerald-400 text-xs font-medium">Connected</span>
@@ -195,6 +289,7 @@ function FormStep({ flight, setFlight, coverage, setCoverage, threshold, setThre
         <input
           type="text" value={flight} onChange={e => setFlight(e.target.value.toUpperCase())}
           placeholder="e.g. AI 131, 6E 456, UK 995"
+          maxLength={16}
           className="w-full bg-[#040d1a] border border-emerald-900/40 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-emerald-400/60 focus:ring-1 focus:ring-emerald-400/20 transition-all"
         />
       </div>
@@ -228,7 +323,7 @@ function FormStep({ flight, setFlight, coverage, setCoverage, threshold, setThre
       {/* Threshold */}
       <div className="space-y-2">
         <label className="text-gray-300 text-sm font-medium">Payout Trigger</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {THRESHOLDS.map(t => (
             <button key={t.hours} onClick={() => setThreshold(t.hours)}
               className={`p-2 rounded-lg border text-xs font-semibold transition-all duration-200 ${
@@ -257,11 +352,15 @@ function FormStep({ flight, setFlight, coverage, setCoverage, threshold, setThre
 
       <button
         onClick={onBuy}
-        disabled={!flight.trim() && walletConnected}
+        disabled={connected && !flight.trim()}
         className="btn-primary w-full py-4 rounded-xl font-bold text-white text-base disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         <Wallet className="w-5 h-5" />
-        {!walletConnected ? "Connect Wallet to Continue" : !flight.trim() ? "Enter Flight Number" : "Review & Buy Policy"}
+        {!connected
+          ? "Connect Wallet to Continue"
+          : !flight.trim()
+          ? "Enter Flight Number"
+          : "Review & Buy Policy"}
       </button>
 
       <p className="text-gray-600 text-xs text-center flex items-center justify-center gap-1">
@@ -271,7 +370,13 @@ function FormStep({ flight, setFlight, coverage, setCoverage, threshold, setThre
   );
 }
 
-function ConfirmStep({ flight, selected, threshold, loading, onConfirm, onBack }: any) {
+function ConfirmStep({
+  flight, selected, threshold, thresholdMins, loading, onConfirm, onBack,
+}: {
+  flight: string; selected: typeof COVERAGES[0];
+  threshold: number; thresholdMins: number;
+  loading: boolean; onConfirm: () => void; onBack: () => void;
+}) {
   return (
     <div className="space-y-6 animate-fade-in-up">
       <h3 className="text-white font-bold text-xl">Confirm Policy</h3>
@@ -281,7 +386,7 @@ function ConfirmStep({ flight, selected, threshold, loading, onConfirm, onBack }
           ["Coverage Tier",   selected.label],
           ["Premium",         `${selected.premium} USDC`],
           ["Max Payout",      `${selected.payout} USDC`],
-          ["Trigger Delay",   `${threshold}+ hours`],
+          ["Trigger Delay",   `${threshold}+ hours (${thresholdMins}min)`],
           ["Expires",         "In 48 hours"],
           ["Stored On-Chain", "Solana Devnet"],
         ].map(([k, v]) => (
@@ -305,7 +410,19 @@ function ConfirmStep({ flight, selected, threshold, loading, onConfirm, onBack }
   );
 }
 
-function SuccessStep({ flight, selected, txHash, onReset }: any) {
+function SuccessStep({
+  flight, selected, txHash, onReset,
+}: {
+  flight: string; selected: typeof COVERAGES[0]; txHash: string; onReset: () => void;
+}) {
+  const explorerUrl = txHash
+    ? `https://explorer.solana.com/tx/${txHash}?cluster=devnet`
+    : null;
+
+  const shortHash = txHash
+    ? `${txHash.slice(0, 8)}...${txHash.slice(-6)}`
+    : "Demo tx";
+
   return (
     <div className="space-y-6 text-center animate-fade-in-up">
       <div className="w-20 h-20 rounded-full bg-emerald-400/15 border-2 border-emerald-400/40 flex items-center justify-center mx-auto glow-emerald">
@@ -320,70 +437,32 @@ function SuccessStep({ flight, selected, txHash, onReset }: any) {
       <div className="glass-card rounded-xl p-4 space-y-3 text-left">
         <div className="flex justify-between text-sm"><span className="text-gray-500">Premium paid</span><span className="text-white">{selected.premium} USDC</span></div>
         <div className="flex justify-between text-sm"><span className="text-gray-500">Max payout</span><span className="text-emerald-400 font-bold">{selected.payout} USDC</span></div>
-        <div className="flex justify-between text-sm"><span className="text-gray-500">Tx hash</span><span className="text-emerald-400 font-mono text-xs">{txHash}</span></div>
-      </div>
-      <button onClick={onReset} className="btn-secondary w-full py-3 rounded-xl font-semibold">
-        Buy Another Policy
-      </button>
-    </div>
-  );
-}
-
-/* ── Wallet Modal ────────────────────────────────────────── */
-function WalletModal({ onConnect, onClose }: { onConnect: () => void; onClose: () => void }) {
-  const [connecting, setConnecting] = useState(false);
-
-  function connect() {
-    setConnecting(true);
-    onConnect();
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-white font-bold text-xl">Connect Wallet</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg glass-card flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-emerald-900/30">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Phantom option */}
-        <button
-          onClick={connect}
-          disabled={connecting}
-          className="w-full flex items-center gap-4 p-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 hover:bg-emerald-400/10 hover:border-emerald-400/40 transition-all duration-200 group mb-3"
-        >
-          {/* Phantom icon */}
-          <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center text-white font-black text-lg">
-            👻
-          </div>
-          <div className="text-left flex-1">
-            <p className="text-white font-semibold">Phantom</p>
-            <p className="text-gray-500 text-sm">Solana's leading wallet</p>
-          </div>
-          {connecting
-            ? <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
-            : <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
-          }
-        </button>
-
-        {/* Install hint */}
-        <div className="glass-card rounded-xl p-3 flex items-center gap-3">
-          <Info className="w-4 h-4 text-gray-500 flex-shrink-0" />
-          <p className="text-gray-500 text-xs">
-            Don&apos;t have Phantom?{" "}
-            <a href="https://phantom.app" target="_blank" rel="noopener noreferrer"
-               className="text-emerald-400 hover:underline inline-flex items-center gap-0.5">
-              Install in 60s <ExternalLink className="w-3 h-3" />
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Tx hash</span>
+          {explorerUrl ? (
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 font-mono text-xs flex items-center gap-1 hover:underline"
+            >
+              {shortHash} <ExternalLink className="w-3 h-3" />
             </a>
-          </p>
+          ) : (
+            <span className="text-emerald-400 font-mono text-xs">{shortHash}</span>
+          )}
         </div>
-
-        <p className="text-gray-600 text-xs text-center mt-4">
-          This is a Devnet demo. No real funds involved.
-        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <a
+          href="#my-policies"
+          className="btn-secondary w-full py-3 rounded-xl font-semibold text-center"
+        >
+          View My Policies ↓
+        </a>
+        <button onClick={onReset} className="text-gray-500 text-sm hover:text-gray-300 transition-colors py-2">
+          Buy Another Policy
+        </button>
       </div>
     </div>
   );
@@ -393,7 +472,7 @@ function WalletModal({ onConnect, onClose }: { onConnect: () => void; onClose: (
 const CONFETTI_COLORS = ["#10b981", "#34d399", "#6ee7b7", "#f59e0b", "#818cf8", "#fb7185"];
 
 function ConfettiEffect() {
-  const dots = Array.from({ length: 20 }, (_, i) => ({
+  const dots = Array.from({ length: 24 }, (_, i) => ({
     id: i,
     color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
     left: `${Math.random() * 100}%`,

@@ -130,7 +130,7 @@ async function runCrank() {
       "utf8"
     )
   );
-  const program = new anchor.Program(idl, PROGRAM_ID, provider) as Program<any>;
+  const program = new anchor.Program(idl, provider) as Program<any>;
 
   const [stateKey] = statePda();
 

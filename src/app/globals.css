@@ -383,3 +383,16 @@ body {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent);
 }
+
+/* ── Wallet Adapter UI Overrides ─────────────────────────── */
+/* Override default white background of wallet modal */
+.wallet-adapter-modal-wrapper {
+  background: rgba(15, 31, 61, 0.98) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  border-radius: 20px !important;
+}
+.wallet-adapter-button-trigger {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
