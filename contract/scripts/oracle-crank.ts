@@ -29,8 +29,8 @@ import fetch from "node-fetch";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const AVIATION_STACK_KEY = process.env.AVIATION_STACK_KEY || "7e98527559da77f9923adcf01f32eeba";
-const RPC_URL = process.env.RPC_URL || "https://devnet.helius-rpc.com/?api-key=de18f83e-181c-4d38-883a-3471cbac0781";
+const AVIATION_STACK_KEY = process.env.AVIATION_STACK_KEY || "";
+const RPC_URL = process.env.RPC_URL || "https://api.devnet.solana.com";
 const defaultKeypairPath = fs.existsSync(path.join(__dirname, "../target/deploy/oracle-keypair.json"))
   ? path.join(__dirname, "../target/deploy/oracle-keypair.json")
   : path.join(process.env.HOME ?? "~", ".config/solana/id.json");
