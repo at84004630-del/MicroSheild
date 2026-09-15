@@ -60,7 +60,7 @@ describe("microshield", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace.Microshield as Program<Microshield>;
+  const program = anchor.workspace.Microshield as any;
   const programId = program.programId;
 
   // Keypairs

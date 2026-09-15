@@ -49,11 +49,12 @@ export function statePda(): [PublicKey, number] {
 
 export function policyPda(
   holder: PublicKey,
-  policyId: number | bigint
+  policyId: number | bigint | BN
 ): [PublicKey, number] {
-  const id = typeof policyId === "bigint" ? policyId : BigInt(policyId);
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64LE(id);
+  const id = typeof policyId === "bigint" ? policyId : BigInt(policyId.toString());
+  const buf = new Uint8Array(8);
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  view.setBigUint64(0, id, true);
   return PublicKey.findProgramAddressSync(
     [Buffer.from("policy"), holder.toBuffer(), buf],
     PROGRAM_PUBLIC_KEY

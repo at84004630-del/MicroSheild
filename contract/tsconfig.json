@@ -7,10 +7,11 @@
     "target": "es6",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
     "outDir": "dist",
     "baseUrl": "."
   },
   "include": ["tests/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist", "target"]
+  "exclude": ["node_modules", "dist"]
 }

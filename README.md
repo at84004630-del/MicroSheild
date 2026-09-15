@@ -157,12 +157,14 @@ npx ts-node scripts/initialize.ts
 ## Tech Stack
 
 - **Blockchain**: Solana (Devnet)
-- **Smart Contracts**: Anchor Framework (Rust)
-- **Oracle**: Switchboard v3 On-Demand
+- **Smart Contracts**: Anchor Framework (Rust) — Program ID: `AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv`
+- **Oracle**: Multi-source Oracle Architecture
+  - *Phase 1 (Current)*: Autonomous off-chain crank (`scripts/oracle-crank.ts`) validating against AviationStack API with trusted keypair reporting
+  - *Phase 2 (Roadmap)*: Switchboard v3 On-Demand custom feed integration for fully trustless consensus
 - **Flight Data**: AviationStack API
-- **Token**: USDC (SPL Token)
+- **Token**: USDC (Circle SPL Token on Devnet: `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr`)
 - **Frontend**: Next.js 15, TypeScript, Tailwind CSS
-- **Wallet**: Phantom, Solflare (via @solana/wallet-adapter)
+- **Wallet**: Phantom, Solflare & 1-Click Devnet Demo Wallet (via @solana/wallet-adapter)
 
 ---
 

@@ -1,3 +1,5 @@
+#![allow(ambiguous_glob_reexports)]
+
 pub mod buy_policy;
 pub mod close_policy;
 pub mod expire_refund;

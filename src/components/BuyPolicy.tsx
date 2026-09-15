@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Plane, Wallet, Shield, ArrowRight, Info, CheckCircle, Loader2, X, ExternalLink, AlertCircle, Droplets } from "lucide-react";
 import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { buyPolicyAction } from "@/lib/actions";
+import { buyPolicyAction, claimDevnetUsdcAction } from "@/lib/actions";
 import { TIERS } from "@/lib/idl";
 
 const COVERAGES = [
@@ -33,11 +33,44 @@ export default function BuyPolicy() {
   const [txHash, setTxHash]       = useState("");
   const [error, setError]         = useState("");
   const [confetti, setConfetti]   = useState(false);
+  const [claimingUsdc, setClaimingUsdc] = useState(false);
+  const [claimSuccess, setClaimSuccess] = useState("");
+  const [copyMintDone, setCopyMintDone] = useState(false);
 
   // Real wallet hooks
   const { connected, publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
   const { setVisible } = useWalletModal();
+
+  async function handleClaimUsdc() {
+    if (!anchorWallet) {
+      setVisible(true);
+      return;
+    }
+    setClaimingUsdc(true);
+    setError("");
+    setClaimSuccess("");
+    try {
+      await claimDevnetUsdcAction(anchorWallet, 100);
+      setClaimSuccess("🎉 Successfully claimed 100 Devnet USDC! You can now confirm and buy your policy.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (
+        msg.includes("Attempt to debit an account") ||
+        msg.includes("prior credit") ||
+        msg.includes("0 Devnet SOL") ||
+        msg.includes("faucet.solana.com")
+      ) {
+        setError(
+          "Your wallet has 0 Devnet SOL! Solana requires devnet SOL for gas fees and account rent before you can claim USDC. Please get free SOL from the faucet below."
+        );
+      } else {
+        setError("Failed to claim USDC: " + msg.slice(0, 150));
+      }
+    } finally {
+      setClaimingUsdc(false);
+    }
+  }
 
   const selected = COVERAGES[coverage];
   const thresholdMins = THRESHOLDS.find(t => t.hours === threshold)?.mins ?? 180;
@@ -82,8 +115,13 @@ export default function BuyPolicy() {
       setTimeout(() => setConfetti(false), 2500);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      // Surface a user-friendly message
-      if (msg.includes("not yet initialized")) {
+      if (
+        msg.includes("Attempt to debit an account") ||
+        msg.includes("prior credit") ||
+        msg.includes("0 Devnet SOL")
+      ) {
+        setError("Your wallet has 0 Devnet SOL to pay transaction gas fees. Please get free Devnet SOL from https://faucet.solana.com first.");
+      } else if (msg.includes("not yet initialized")) {
         setError("Program not deployed on devnet yet. This is a demo — real deployment coming soon!");
       } else if (msg.includes("insufficient funds") || msg.includes("0x1")) {
         setError("Insufficient USDC balance. Get devnet USDC from a faucet first.");
@@ -99,7 +137,7 @@ export default function BuyPolicy() {
   }
 
   return (
-    <section id="buy-policy" ref={sectionRef} className="py-28 relative">
+    <section id="buy-policy" ref={sectionRef} className="py-28 relative scroll-mt-20">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/5 to-transparent pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative">
@@ -115,12 +153,30 @@ export default function BuyPolicy() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleClaimUsdc}
+              disabled={claimingUsdc}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-emerald-400/40 bg-emerald-500/20 text-emerald-300 text-xs font-bold hover:bg-emerald-500/30 transition-all cursor-pointer shadow-md shadow-emerald-950/40"
+            >
+              {claimingUsdc ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Claiming 100 USDC...
+                </>
+              ) : (
+                <>
+                  <Droplets className="w-3.5 h-3.5 text-emerald-400" />
+                  1-Click Claim 100 USDC
+                </>
+              )}
+            </button>
             <a
               href="https://faucet.solana.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-colors"
             >
               Get Devnet SOL <ExternalLink className="w-3 h-3" />
             </a>
@@ -128,10 +184,21 @@ export default function BuyPolicy() {
               href="https://spl-token-faucet.com/?token-name=USDC-Dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-300 text-xs font-semibold hover:bg-amber-400/20 transition-colors"
             >
-              Get Devnet USDC <ExternalLink className="w-3 h-3" />
+              Web Faucet <ExternalLink className="w-3 h-3" />
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText("Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr");
+                setCopyMintDone(true);
+                setTimeout(() => setCopyMintDone(false), 2000);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20 transition-colors cursor-pointer"
+            >
+              {copyMintDone ? "✓ Copied!" : "Copy Mint"}
+            </button>
           </div>
         </div>
 
@@ -179,27 +246,74 @@ export default function BuyPolicy() {
 
             {/* Error banner */}
             {error && (
-              <div className="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 flex items-start gap-2 animate-fade-in-up">
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-red-400 text-sm">{error}</p>
+              <div className="mb-4 p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 flex flex-col gap-2.5 animate-fade-in-up">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-red-300 text-sm leading-snug">{error}</p>
+                </div>
+                {(error.includes("Devnet SOL") || error.includes("debit an account")) && (
+                  <div className="pt-2 border-t border-red-500/20 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs text-amber-300 font-medium">👉 Step 1: Claim free SOL to pay gas fees</span>
+                    <a
+                      href="https://faucet.solana.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400 text-gray-950 font-bold text-xs hover:bg-amber-300 transition-colors shadow-sm"
+                    >
+                      <span>Solana Devnet Faucet</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Claim Success banner */}
+            {claimSuccess && (
+              <div className="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-start gap-2 animate-fade-in-up">
+                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <p className="text-emerald-300 text-sm font-medium">{claimSuccess}</p>
               </div>
             )}
 
             {/* Faucet banner — shown when insufficient funds error */}
             {error && (error.includes("USDC") || error.includes("0x1") || error.includes("insufficient")) && (
-              <div className="mb-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/8 flex items-center justify-between gap-3 animate-fade-in-up">
+              <div className="mb-3 p-3 rounded-xl border border-amber-500/30 bg-amber-500/8 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in-up">
                 <div className="flex items-center gap-2">
                   <Droplets className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <p className="text-amber-400 text-xs font-medium">Need devnet USDC?</p>
+                  <div>
+                    <p className="text-amber-300 text-xs font-semibold">Need devnet USDC?</p>
+                    <p className="text-gray-400 text-[11px]">Click below to get 100 test USDC instantly:</p>
+                  </div>
                 </div>
-                <a
-                  href="https://spl-token-faucet.com/?token-name=USDC"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-amber-300 hover:text-amber-200 font-semibold whitespace-nowrap transition-colors"
-                >
-                  Get Test USDC <ExternalLink className="w-3 h-3" />
-                </a>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClaimUsdc}
+                    disabled={claimingUsdc}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 text-xs font-bold hover:bg-emerald-500/30 transition-colors cursor-pointer shadow-sm"
+                  >
+                    {claimingUsdc ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Claiming...
+                      </>
+                    ) : (
+                      <>
+                        <Droplets className="w-3 h-3 text-emerald-400" />
+                        Claim 100 USDC
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href="https://spl-token-faucet.com/?token-name=USDC-Dev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-amber-300 hover:text-amber-200 font-semibold whitespace-nowrap transition-colors"
+                  >
+                    Web Faucet <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
               </div>
             )}
 
@@ -268,7 +382,7 @@ function FormStep({
             <p className="text-gray-500 text-sm mt-0.5">
               Wallet: Not connected ·{" "}
               <button className="text-emerald-400 hover:underline cursor-pointer" onClick={onConnectWallet}>
-                Connect Phantom
+                Connect Wallet
               </button>
             </p>
           )}

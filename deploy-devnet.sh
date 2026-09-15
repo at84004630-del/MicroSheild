@@ -14,6 +14,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
+export PATH="$HOME/.avm/bin:$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTRACT_DIR="$SCRIPT_DIR/contract"
 
@@ -24,21 +26,19 @@ echo "$(printf '─%.0s' {1..55})"
 # ── 1. Switch to devnet ───────────────────────────────────────────────────────
 echo ""
 echo "1️⃣  Setting Solana CLI to devnet…"
-solana config set --url https://api.devnet.solana.com
+solana config set --url "https://devnet.helius-rpc.com/?api-key=de18f83e-181c-4d38-883a-3471cbac0781"
 
 # ── 2. Check wallet balance ───────────────────────────────────────────────────
 echo ""
 echo "2️⃣  Checking deployer wallet balance…"
-BALANCE=$(solana balance --output json-compact | jq -r '.[] | select(.lamports) | .lamports' 2>/dev/null || solana balance)
+BALANCE=$(solana balance)
 echo "    $BALANCE"
-echo "    ⚠️  You need at least 2 SOL for deployment. Get devnet SOL:"
-echo "    solana airdrop 2 && solana airdrop 2"
 
 # ── 3. Build the program ──────────────────────────────────────────────────────
 echo ""
 echo "3️⃣  Building Anchor program…"
 cd "$CONTRACT_DIR"
-anchor build
+anchor build --no-idl
 
 # ── 4. Get the Program ID from keypair ───────────────────────────────────────
 echo ""
@@ -49,7 +49,7 @@ echo "    ✅  Program ID: $PROGRAM_ID"
 # ── 5. Deploy to devnet ───────────────────────────────────────────────────────
 echo ""
 echo "5️⃣  Deploying to devnet…"
-anchor deploy --provider.cluster devnet
+solana program deploy --use-rpc --with-compute-unit-price 1000 --max-sign-attempts 10 target/deploy/microshield.so --program-id target/deploy/microshield-keypair.json
 
 echo ""
 echo "✅  Deployment complete!"

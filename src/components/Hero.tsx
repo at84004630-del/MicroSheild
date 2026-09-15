@@ -133,7 +133,7 @@ function AnimatedPolicyCard() {
       {/* Outer glow */}
       <div className="absolute inset-0 bg-emerald-400/8 rounded-3xl blur-3xl scale-110 pointer-events-none" />
 
-      <div className="relative glass-card-bright rounded-3xl p-8 space-y-6 glow-pulse border border-emerald-400/25">
+      <div className="relative glass-card-bright rounded-3xl p-8 space-y-4 glow-pulse border border-emerald-400/25 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

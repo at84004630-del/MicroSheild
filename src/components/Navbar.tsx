@@ -1,13 +1,16 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, Menu, X, Zap } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { connected, publicKey, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
+
+  useEffect(() => { setMounted(true); }, []);
 
   const shortAddress = publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -45,7 +48,7 @@ export default function Navbar() {
               <span className="text-emerald-400 text-xs font-medium">Solana Devnet</span>
             </div>
 
-            {connected && shortAddress ? (
+            {mounted && connected && shortAddress ? (
               <div className="flex items-center gap-2">
                 <span className="text-emerald-400 font-mono text-xs px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/5">
                   {shortAddress}
@@ -57,7 +60,7 @@ export default function Navbar() {
                   Disconnect
                 </button>
               </div>
-            ) : (
+            ) : mounted ? (
               <button
                 onClick={() => setVisible(true)}
                 className="btn-primary px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-1.5"
@@ -65,6 +68,8 @@ export default function Navbar() {
                 <Zap className="w-4 h-4" />
                 Connect Wallet
               </button>
+            ) : (
+              <div className="w-32 h-8 rounded-lg bg-emerald-900/20 animate-pulse" />
             )}
           </div>
 

@@ -1,14 +1,13 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { Code2, MessageSquare, ExternalLink } from "lucide-react";
+import { Code2, ExternalLink } from "lucide-react";
 
 const TEAM = [
   {
     name: "Abhinav Tripathi",
     role: "Full-Stack & Smart Contract Engineer",
     bio: "Solana ecosystem builder. Specializes in Anchor programs, DeFi protocols, and full-stack web3 applications.",
-    github: "https://github.com/abhinavtripathi",
-    twitter: "https://twitter.com/abhinavtripathi",
+    github: "https://github.com/abhinavtripathi7",
     avatar: "AT",
     gradient: "from-emerald-400 to-teal-500",
   },
@@ -96,16 +95,6 @@ export default function TeamSection() {
                   >
                     <Code2 className="w-4 h-4" />
                     GitHub
-                  </a>
-                  <span className="text-gray-700">·</span>
-                  <a
-                    href={member.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-emerald-400 transition-colors font-medium"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Twitter
                   </a>
                 </div>
               </div>

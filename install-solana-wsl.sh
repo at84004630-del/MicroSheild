@@ -17,14 +17,14 @@ tar -xjf "$ARCHIVE" -C "$INSTALL_DIR" --strip-components=1
 
 echo "==> Setting up PATH in .profile..."
 EXPORT_LINE='export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH"'
-grep -qxF "$EXPORT_LINE" ~/.profile || echo "$EXPORT_LINE" >> ~/.profile
+grep -qxF "$EXPORT_LINE" ~/.bashrc || echo "$EXPORT_LINE" >> ~/.bashrc
 
 echo "==> Sourcing profile..."
 export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH"
 
 echo "==> Verifying..."
 solana --version
-anchor --version
+anchor --version 2>/dev/null || echo "Anchor not yet installed"
 
 echo "==> Setting Solana to devnet..."
 solana config set --url devnet

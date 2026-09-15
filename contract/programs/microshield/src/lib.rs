@@ -13,7 +13,7 @@ use instructions::*;
 //   anchor keys list
 // Copy the generated program ID here and into Anchor.toml [programs.*] sections.
 // ──────────────────────────────────────────────────────────────────────────────
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv");
 
 #[program]
 pub mod microshield {

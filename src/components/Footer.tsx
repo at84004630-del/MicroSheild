@@ -1,5 +1,5 @@
 "use client";
-import { Shield, ExternalLink, Code2, MessageCircle } from "lucide-react";
+import { Shield, ExternalLink, Code2 } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -25,12 +25,6 @@ export default function Footer() {
                 title="GitHub Repository"
               >
                 <Code2 className="w-4 h-4" />
-              </a>
-              <a href="https://twitter.com/MicroShield_sol" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-lg glass-card flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-emerald-900/30"
-                title="Twitter / X"
-              >
-                <MessageCircle className="w-4 h-4" />
               </a>
             </div>
           </div>

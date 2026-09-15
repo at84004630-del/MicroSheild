@@ -29,10 +29,13 @@ import fetch from "node-fetch";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const AVIATION_STACK_KEY = process.env.AVIATION_STACK_KEY ?? "";
-const RPC_URL = process.env.RPC_URL ?? "https://api.devnet.solana.com";
-const ORACLE_KEYPAIR_PATH = process.env.ORACLE_KEYPAIR_PATH ?? path.join(process.env.HOME ?? "~", ".config/solana/oracle.json");
-const PROGRAM_ID = new PublicKey(process.env.PROGRAM_ID ?? "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+const AVIATION_STACK_KEY = process.env.AVIATION_STACK_KEY || "7e98527559da77f9923adcf01f32eeba";
+const RPC_URL = process.env.RPC_URL || "https://devnet.helius-rpc.com/?api-key=de18f83e-181c-4d38-883a-3471cbac0781";
+const defaultKeypairPath = fs.existsSync(path.join(__dirname, "../target/deploy/oracle-keypair.json"))
+  ? path.join(__dirname, "../target/deploy/oracle-keypair.json")
+  : path.join(process.env.HOME ?? "~", ".config/solana/id.json");
+const ORACLE_KEYPAIR_PATH = process.env.ORACLE_KEYPAIR_PATH || defaultKeypairPath;
+const PROGRAM_ID = new PublicKey(process.env.PROGRAM_ID || "AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv");
 const WATCH_MODE = process.argv.includes("--watch");
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -130,7 +133,8 @@ async function runCrank() {
       "utf8"
     )
   );
-  const program = new anchor.Program(idl, provider) as Program<any>;
+  idl.address = PROGRAM_ID.toBase58();
+  const program = new anchor.Program(idl, provider) as any;
 
   const [stateKey] = statePda();
 

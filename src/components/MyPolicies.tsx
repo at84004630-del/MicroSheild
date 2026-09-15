@@ -133,21 +133,23 @@ function PolicyCard({ policy, onRefreshed }: { policy: PolicyOnChain; onRefreshe
   return (
     <div className="glass-card-bright rounded-2xl p-6 border border-emerald-400/15 card-hover-lift space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center flex-shrink-0">
             <Plane className="w-5 h-5 text-emerald-400" />
           </div>
-          <div>
-            <p className="text-white font-bold">{policy.flightNumber}</p>
+          <div className="min-w-0">
+            <p className="text-white font-bold truncate">{policy.flightNumber}</p>
             <p className="text-gray-500 text-xs">Policy #{policy.policyId}</p>
           </div>
         </div>
-        <StatusBadge
-          status={policy.status}
-          delayMins={policy.delayMinutesReported}
-          threshold={policy.delayThresholdMins}
-        />
+        <div className="flex-shrink-0">
+          <StatusBadge
+            status={policy.status}
+            delayMins={policy.delayMinutesReported}
+            threshold={policy.delayThresholdMins}
+          />
+        </div>
       </div>
 
       {/* Delay meter (only for active) */}
@@ -382,13 +384,13 @@ export default function MyPolicies() {
             </div>
             <h3 className="text-white font-bold text-xl mb-2">Connect Your Wallet</h3>
             <p className="text-gray-400 text-sm mb-6 max-w-sm mx-auto">
-              Connect your Phantom wallet to view your active and historical policies on-chain.
+              Connect your Solana wallet to view your active and historical policies on-chain.
             </p>
             <button
               onClick={() => setVisible(true)}
               className="btn-primary px-6 py-3 rounded-xl font-bold text-white"
             >
-              Connect Phantom
+              Connect Wallet
             </button>
           </div>
         )}

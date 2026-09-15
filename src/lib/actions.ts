@@ -5,9 +5,10 @@
  * Each action returns the transaction signature on success.
  */
 
-import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionInstruction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
@@ -296,3 +297,85 @@ export async function fetchProgramStats(
     return null;
   }
 }
+
+// ─── claimDevnetUsdcAction ────────────────────────────────────────────────────
+
+/**
+ * Directly claims Devnet USDC from the official SPL token faucet smart contract.
+ * Does not hit public Solana SOL airdrop rate limits (429).
+ */
+export async function claimDevnetUsdcAction(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  wallet: any,
+  amountUsdc = 100
+): Promise<string> {
+  const FAUCET_PROGRAM_ID = new PublicKey("4sN8PnN2ki2W4TFXAfzR645FWs8nimmsYeNtxM8RBK6A");
+  const usdcMint = new PublicKey(DEVNET_USDC_MINT);
+  const receiver = wallet.publicKey as PublicKey;
+  const destinationAta = await getAssociatedTokenAddress(usdcMint, receiver);
+
+  const program = getMicroshieldProgram(wallet);
+
+  // Check SOL balance first — Solana requires gas (SOL) to sign txs & create token accounts
+  const solBalance = await program.provider.connection.getBalance(receiver);
+  if (solBalance < 0.005 * LAMPORTS_PER_SOL) {
+    // Try requesting a devnet airdrop silently first if supported
+    try {
+      const airdropSig = await program.provider.connection.requestAirdrop(
+        receiver,
+        1 * LAMPORTS_PER_SOL
+      );
+      const latestBlock = await program.provider.connection.getLatestBlockhash();
+      await program.provider.connection.confirmTransaction({
+        blockhash: latestBlock.blockhash,
+        lastValidBlockHeight: latestBlock.lastValidBlockHeight,
+        signature: airdropSig,
+      });
+    } catch {
+      // If airdrop failed and user has 0 SOL, throw an explicit, actionable error
+      if (solBalance === 0) {
+        throw new Error(
+          "Your wallet has 0 Devnet SOL. You need a small amount of Devnet SOL to pay transaction fees and create your USDC account. Please get free Devnet SOL from https://faucet.solana.com first."
+        );
+      }
+    }
+  }
+
+  const destinationInfo = await program.provider.connection.getAccountInfo(destinationAta);
+
+  const preInstructions = [];
+  if (!destinationInfo) {
+    preInstructions.push(
+      createAssociatedTokenAccountInstruction(receiver, destinationAta, receiver, usdcMint)
+    );
+  }
+
+  // Anchor instruction layout: 8-byte discriminator + 1-byte bump + 8-byte u64 amount
+  const disc = Buffer.from([113, 173, 36, 238, 38, 152, 22, 117]);
+  const bump = Buffer.from([255]);
+  const amountBuf = new BN(amountUsdc * USDC_DECIMALS).toArrayLike(Buffer, "le", 8);
+  const data = Buffer.concat([disc, bump, amountBuf]);
+
+  const ix = new TransactionInstruction({
+    programId: FAUCET_PROGRAM_ID,
+    keys: [
+      { pubkey: usdcMint, isSigner: false, isWritable: true },
+      { pubkey: destinationAta, isSigner: false, isWritable: true },
+      { pubkey: receiver, isSigner: true, isWritable: true },
+      { pubkey: receiver, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+    ],
+    data,
+  });
+
+  const tx = new Transaction();
+  preInstructions.forEach((instr) => tx.add(instr));
+  tx.add(ix);
+
+  const sig = await program.provider.sendAndConfirm!(tx);
+  return sig;
+}
+

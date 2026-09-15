@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { fetchProgramStats } from "@/lib/actions";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
+import { IDL, USDC_DECIMALS } from "@/lib/idl";
+import { statePda, RPC_ENDPOINT } from "@/lib/program";
 
 /* ── Static market stats (always shown) ─────────────────────── */
 const MARKET_STATS = [
@@ -99,37 +101,43 @@ function LiveStatCard({
   );
 }
 
-/* ── Main Stats component ────────────────────────────────────── */
+/* ── Main Stats component ────────────────────────────────── */
 export default function Stats() {
   const sectionRef = useRef<HTMLElement>(null);
-  const anchorWallet = useAnchorWallet();
 
-  // On-chain live stats
-  const [totalPolicies, setTotalPolicies]     = useState<number | null>(null);
+  // On-chain live stats — fetched with a read-only provider, no wallet needed
+  const [totalPolicies, setTotalPolicies]       = useState<number | null>(null);
   const [totalPayoutsUsdc, setTotalPayoutsUsdc] = useState<number | null>(null);
-  const [chainLoading, setChainLoading]       = useState(false);
+  const [chainLoading, setChainLoading]         = useState(true);
 
-  // Fetch live stats from the program state PDA (wallet-less read)
   useEffect(() => {
-    async function load() {
-      setChainLoading(true);
+    async function loadReadOnly() {
       try {
-        // fetchProgramStats needs a wallet-like object for the provider;
-        // fall back gracefully to null if no wallet is connected.
-        if (!anchorWallet) return;
-        const stats = await fetchProgramStats(anchorWallet);
-        if (stats) {
-          setTotalPolicies(stats.totalPolicies);
-          setTotalPayoutsUsdc(stats.totalPayoutsUsdc);
-        }
+        // Build a read-only provider with a dummy wallet (no real keypair needed for reads)
+        const connection = new Connection(RPC_ENDPOINT, "confirmed");
+        const dummyWallet = {
+          publicKey: new PublicKey("11111111111111111111111111111111"),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          signTransaction: async (tx: any) => tx,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          signAllTransactions: async (txs: any[]) => txs,
+        };
+        const provider = new AnchorProvider(connection, dummyWallet as any, { commitment: "confirmed" });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const program = new Program(IDL as any, provider);
+        const [stateKey] = statePda();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const state = await (program.account as any).programState.fetch(stateKey);
+        setTotalPolicies((state.totalPolicies as BN).toNumber());
+        setTotalPayoutsUsdc((state.totalPayoutsUsdc as BN).toNumber() / USDC_DECIMALS);
       } catch {
-        // Silent — program not deployed yet, show fallback UI
+        // Program not initialized or network error — silently fall back to hiding live stats
       } finally {
         setChainLoading(false);
       }
     }
-    load();
-  }, [anchorWallet]);
+    loadReadOnly();
+  }, []);
 
   // Scroll reveal
   useEffect(() => {
@@ -197,10 +205,10 @@ export default function Stats() {
           </div>
         )}
 
-        {/* Placeholder — shown when wallet is disconnected and no stats available */}
-        {!showLiveStats && !chainLoading && !anchorWallet && (
-          <p className="text-center text-gray-700 text-xs">
-            Connect wallet to see live on-chain stats
+        {/* Placeholder — shown only while loading */}
+        {chainLoading && !totalPolicies && (
+          <p className="text-center text-gray-700 text-xs animate-pulse">
+            Loading live on-chain stats…
           </p>
         )}
 

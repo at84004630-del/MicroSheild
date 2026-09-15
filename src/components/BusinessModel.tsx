@@ -78,7 +78,7 @@ export default function BusinessModel() {
             className="reveal text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed"
             style={{ transitionDelay: "160ms" }}
           >
-            MicroShield is not a charity — it's a protocol with real unit economics.
+            MicroShield is not a charity — it&apos;s a protocol with real unit economics.
             A 2% on-chain fee funds treasury reserves and development with zero human discretion.
           </p>
         </div>
