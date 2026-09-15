@@ -2,7 +2,12 @@
 
 **Instant, trustless micro-insurance for flight delays. Buy coverage for $1–5 USDC. If your flight delays 3+ hours, USDC lands in your wallet automatically — no claims, no forms, no waiting.**
 
-Built for the [Colosseum Eternal Hackathon](https://earn.superteam.fun/listings/hackathon/colosseum-eternal-hackathon/).
+🏆 **Built for the [Colosseum Eternal Hackathon](https://earn.superteam.fun/listings/hackathon/colosseum-eternal-hackathon/)**
+
+🌐 **Live Demo (Devnet)**: [https://micro-sheild-test.vercel.app/](https://micro-sheild-test.vercel.app/)  
+📜 **Solana Program ID**: [`AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv`](https://explorer.solana.com/address/AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv?cluster=devnet)  
+🪙 **USDC Mint (Devnet)**: [`Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr`](https://explorer.solana.com/address/Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr?cluster=devnet)  
+💻 **GitHub Repository**: [https://github.com/at84004630-del/MicroSheild](https://github.com/at84004630-del/MicroSheild)
 
 ---
 

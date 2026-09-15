@@ -20,7 +20,7 @@ export default function Footer() {
               Parametric micro-insurance on Solana. Instant, trustless, zero-claim payouts powered by Switchboard Oracle.
             </p>
             <div className="flex items-center gap-2">
-              <a href="https://github.com/abhinavtripathi7/microshield" target="_blank" rel="noopener noreferrer"
+              <a href="https://github.com/at84004630-del/MicroSheild" target="_blank" rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg glass-card flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-emerald-900/30"
                 title="GitHub Repository"
               >
