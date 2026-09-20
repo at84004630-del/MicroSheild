@@ -220,6 +220,7 @@ export async function expireRefundAction({
       // payer is Signer — the connected wallet pays the tx fee
       payer:         payerKey,
       tokenProgram:  TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
     })
     .rpc();
 
