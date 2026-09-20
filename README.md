@@ -5,9 +5,10 @@
 🏆 **Built for the [Colosseum Eternal Hackathon](https://earn.superteam.fun/listings/hackathon/colosseum-eternal-hackathon/)**
 
 🌐 **Live Demo (Devnet)**: [https://micro-sheild-test.vercel.app/](https://micro-sheild-test.vercel.app/)  
+> *Note: The Vercel deployment subdomain retains an initial deployment typo (`micro-sheild-test`), while all source repositories and branding use the official name `MicroShield`.*  
 📜 **Solana Program ID**: [`AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv`](https://explorer.solana.com/address/AmA7WxBdyLCLrNPD3pjjwQx1f4jShve8oGJN4zKqTTQv?cluster=devnet)  
 🪙 **USDC Mint (Devnet)**: [`Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr`](https://explorer.solana.com/address/Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr?cluster=devnet)  
-💻 **GitHub Repository**: [https://github.com/at84004630-del/MicroSheild](https://github.com/at84004630-del/MicroSheild)
+💻 **GitHub Repository**: [https://github.com/at84004630-del/MicroShield](https://github.com/at84004630-del/MicroShield)
 
 ---
 

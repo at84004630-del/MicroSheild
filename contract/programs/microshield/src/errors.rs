@@ -18,6 +18,10 @@ pub enum MicroshieldError {
     #[msg("Policy has not expired yet; cannot refund before expiry")]
     PolicyNotExpired,
 
+    /// Policy has already expired; oracle cannot report delay on an expired policy
+    #[msg("Policy has expired; use expire_refund instead of report_delay")]
+    PolicyExpired,
+
     /// premium_tier must be 0, 1, or 2
     #[msg("Invalid premium tier: use 0 (Basic/1 USDC), 1 (Standard/2 USDC), or 2 (Premium/5 USDC)")]
     InvalidPremiumTier,

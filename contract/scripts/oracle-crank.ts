@@ -146,7 +146,17 @@ async function runCrank() {
       const policyAccounts = await program.account.policy.all([
         {
           memcmp: {
-            offset: 8 + 32 + 16 + 8 + 8 + 4 + 8 + 8, // offset to `status` field
+            // Byte layout of Policy account (Anchor discriminator + fields):
+            // 8   discriminator
+            // 32  holder (Pubkey)
+            // 16  flight_number ([u8;16])
+            // 8   premium (u64)
+            // 8   max_payout (u64)
+            // 4   delay_threshold_mins (u32)
+            // 8   created_at (i64)
+            // 8   expires_at (i64)
+            // ── next byte = status enum tag ──
+            offset: 8 + 32 + 16 + 8 + 8 + 4 + 8 + 8, // = 92 → PolicyStatus field
             bytes: anchor.utils.bytes.bs58.encode(Buffer.from([0])), // PolicyStatus::Active = 0
           },
         },
@@ -176,15 +186,19 @@ async function runCrank() {
         let delayMins = 0;
         if (AVIATION_STACK_KEY) {
           try {
-            delayMins = await fetchFlightDelay(flightStr.replace(" ", ""));
+            delayMins = await fetchFlightDelay(flightStr.replace(/\s+/g, ""));
           } catch (e) {
             console.error(`  [oracle] Failed to fetch delay for ${flightStr}:`, e);
             continue;
           }
         } else {
-          // Demo mode: simulate delay for testing without API key
-          delayMins = Math.floor(Math.random() * 200);
-          console.log(`  [oracle] DEMO MODE (no API key): simulated ${delayMins}min delay`);
+          // Demo mode: ramp delay by 100min per poll so threshold is hit on 2nd–3rd run.
+          // This gives judges a reliable, deterministic payout demo without an API key.
+          const prevDelay = (policy.delayMinutesReported as number) ?? 0;
+          delayMins = Math.min(prevDelay + 100, 400);
+          console.log(
+            `  [oracle] DEMO MODE (no API key): ramp delay ${prevDelay}→${delayMins}min`
+          );
         }
 
         // Get holder's USDC ATA for potential payout

@@ -73,6 +73,14 @@ pub fn handler(ctx: Context<ReportDelay>, policy_id: u64, delay_minutes: u32) ->
         MicroshieldError::PolicyNotActive
     );
 
+    // Guard: oracle cannot report on an already-expired policy;
+    // expired-but-unpaid policies must go through expire_refund instead.
+    let clock = Clock::get()?;
+    require!(
+        clock.unix_timestamp < ctx.accounts.policy.expires_at,
+        MicroshieldError::PolicyExpired
+    );
+
     // Update delay reading
     ctx.accounts.policy.delay_minutes_reported = delay_minutes;
 

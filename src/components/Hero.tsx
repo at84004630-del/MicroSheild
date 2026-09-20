@@ -107,25 +107,35 @@ function AnimatedPolicyCard() {
   const [delayMins, setDelayMins] = useState(0);
 
   useEffect(() => {
+    let running = true;
+
     // Loop through states: active → delayed (counting up) → paid → reset
     const sequence = async () => {
-      while (true) {
+      while (running) {
         // On-time phase — 3s
         setCardStatus("active");
         setDelayMins(0);
         await sleep(3000);
+        if (!running) break;
 
         // Delay counting up
         for (let m = 0; m <= 185; m += 37) {
+          if (!running) break;
           setDelayMins(m);
           if (m >= 30) setCardStatus("delayed");
           await sleep(600);
         }
+        if (!running) break;
+
         setCardStatus("paid");
         await sleep(3500);
       }
     };
+
     sequence();
+    return () => {
+      running = false;
+    };
   }, []);
 
   return (

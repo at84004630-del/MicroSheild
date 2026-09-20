@@ -419,6 +419,33 @@ describe("microshield", () => {
     }
   });
 
+  // ── 10. Smoke-test: report_delay on non-expired policy succeeds ───────────
+  it("report_delay on valid non-expired policy succeeds (expiry guard smoke-test)", async () => {
+    const policyId = new BN(1); // Policy #1 (6E 456, threshold=120min)
+    const [policyKey] = policyPda(holder.publicKey, policyId, programId);
+    const [vaultKey] = vaultPda(policyKey, programId);
+
+    await program.methods
+      .reportDelay(policyId, 50)
+      .accounts({
+        state: stateKey,
+        policy: policyKey,
+        policyVault: vaultKey,
+        holderUsdcAta: holderUsdc,
+        usdcMint,
+        oracle: oracle.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([oracle])
+      .rpc();
+
+    const policy = await program.account.policy.fetch(policyKey);
+    assert.deepEqual(policy.status, { active: {} });
+    assert.equal(policy.delayMinutesReported, 50);
+    console.log("  ✓ report_delay on valid non-expired policy succeeds (50min reported, active)");
+    console.log("  ℹ  Full time-travel expiry test requires solana-bankrun (future work)");
+  });
+
   // ── Summary ─────────────────────────────────────────────────────────────
 
   after(async () => {
